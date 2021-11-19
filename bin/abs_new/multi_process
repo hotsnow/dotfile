@@ -1,0 +1,391 @@
+##############################################################################
+#
+# smart multi process
+# by weiweilai 20100407
+# thanks for coffeedang and echoqin
+#
+# bash 3.0 or later
+#
+# add push_file action 20100429
+# add push_file and remote_cmd action at the same time 20100504
+# fix cygwin md5sum bug 20101221
+#
+# version 3.0  20101231
+# change a lot of loginc
+# push and pull file change gzip to zip
+# push and pull file change absolute path to relative path
+#
+#
+#   1. rsync file can't nore than 1800 second
+##############################################################################
+
+sub_usage() {
+    echo ""
+    echo "set value of:"
+    echo "    remote_cmd ip_list [push_file_list|push_remote_dir] [log_file] [max_process] [ABSUSER] [ABSPASSWD] [ABSBWLIMIT] ..."
+    echo "    source multi_procress"
+    echo ""
+    echo "    default: push_remote_dir=/tmp"
+    echo "    default: pull_local_dir=/tmp"
+    echo "    default: log_file=log/`basename $0`.date.log"
+    echo "    default: max_process=100"
+    echo "    default: ABSPORT=36000"
+    echo "    default: ABSBWLIMIT=1024"
+    echo "    default: ABSSCPTIMEOUT=300"
+    echo "    default: ABSSSHTIMEOUT=300"
+    echo ""
+    echo "-y for batch mode:"
+    echo "flag:source multi_procress -y"
+    echo ""
+    echo "run this for more info: ucat `dirname $0`/README"
+    exit 1
+}
+
+# color echo
+sub_cecho() {
+    [[ -z "$1" ]] && echo -e "\n\033[31m\033[1m cecho function err \033[m\n";
+    echo -e "\033[33m\033[1m$1\033[m";
+}
+
+# 多进程处理和日志处理部分
+sub_hs_jobs() {
+    ## find a free fd as the fifo fd
+    for ((freefd = 10; $freefd < 60000; freefd++));do
+        if [[ ! -L /dev/fd/$freefd ]]; then
+            fifo_fd=$freefd
+            break
+        else
+            (( freefd++ ))
+        fi
+    done
+
+    [[ -n $fifo_fd ]] || exit 1
+
+    tmp_fifofile="log/fifo.$$"
+    mkfifo "$tmp_fifofile"
+    eval "exec $fifo_fd<> \"$tmp_fifofile\""
+    /bin/rm $tmp_fifofile
+    unset tmp_fifofile
+
+    for ((i_index = 0; i_index < $max_process; i_index++));do
+        echo >&$fifo_fd
+    done
+
+    [[ -n "$batch_flag" ]] || sub_cecho "Please wait while complete...."
+
+    # deliver ip address
+    while read ip others; do
+        # read from child
+        read -u$fifo_fd return_ip
+
+        # one child end and get log
+        echo $return_ip |egrep -q "^([0-9]{1,3}\.){3}[0-9]{1,3}" && {
+            # command finish, show cmd log info
+            # 进程通过 $log_file.$return_ip 是否为空来判断 ssh.exp 和 scp.exp 本身的错误，一般为登录失败。这个判断条件非常重要
+            if [[ -s "$log_file.$return_ip" ]]; then
+                # color flag
+                [[ "$color" ==  "green" ]] && color=blue || color=green
+
+                while read line; do
+                    #[[ "$line" =~ "cmd finish" ]] && line=""
+
+                    # format log msg, %4s for ip_num, %-16s for ip and other ip info
+                    ip_info=`printf "%-5s%-16s%-12s" $ip_num $return_ip "${line%%_____*}"`
+                    log_msg="${line##*_____}"
+                    # store log
+                    echo "$ip_info $log_msg" >> $log_file
+
+                    # color output
+                    if [[ "$color_flag" == "no" ]]; then
+                        echo "$ip_info $log_msg"
+                    else
+                        [[ "$color" ==  "green" ]] && echo -e "\033[32m$ip_info\033[m\t$log_msg"
+                        [[ "$color" ==  "blue" ]] && echo -e "\033[34m\033[1m$ip_info\033[m\t$log_msg"
+                    fi
+                done < $log_file.$return_ip
+
+                # remove single ip log
+                rm $log_file.$return_ip.ssh
+                #sleep 0.5
+            # ssh connect failed, show ssh log
+            else
+                ip_info=`grep -w $return_ip $ip_list`
+                sub_cecho "* * * ssh failed $ip_info * * *"
+                cat $log_file.$return_ip.ssh && sleep 0.5
+            fi
+            rm -f $log_file.$return_ip
+
+            # ip and process index
+            let ip_num--
+        }
+
+        #[[ $ip =~ "^([0-9]{1,3}\.){3}[0-9]{1,3}" ]] || continue
+        echo $ip |egrep -q "^([0-9]{1,3}\.){3}[0-9]{1,3}" || continue
+        # child process to do my job
+        (
+            export ABSIP=$ip
+            :> $log_file.$ip
+            :> $log_file.$ip.ssh
+
+            #if [[ $ABSIP =~ ^(203) ]]; then
+            #    eval ssh="$ssh -o 'ProxyCommand=nc -X connect -x 23.248.162.153:8080 %h %p'"
+            #fi
+
+            # push file -> remote command -> pull file
+            # 注意下面三步的复杂关系，最繁杂的是通过 $log_file.$ip 是否为空来判断登录失败与否
+            # 注意这里 $log_file.$ip.ssh 和 $log_file.$ip 日志的复杂关系。
+            # 记住 $log_file.$ip.ssh 是用于错误定位，不用于做错误判断。即完全是日志记录
+            # 记住 $log_file.$ip 是用于最后结果显示及错误判断
+
+            # 1
+            # send file to remote host
+            [[ -n "$push_file_list" ]] && {
+                for push_file_list_one in $push_file_list; do
+                    # rsync and get scp.exp return code
+                    # scp.exp 不区分正确与错误输出，登录失败信息同样stdout。因此只保留一份，无需 $log_file.$ip
+                    #echo $scp "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                    #$scp "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                    if [[ -n "$ABSPASSWD" ]]; then
+                        $abs_pathscp.exp $push_file_list_one "$push_remote_dir/" push >>$log_file.$ip.ssh 2>&1 </dev/null
+                    else
+                        /usr/bin/rsync -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no " --timeout=1800 -rltzq "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                        #/usr/bin/rsync -e 'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o "ProxyCommand ssh 23.248.162.153 -p 20460 exec nc %h %p 2>/dev/null"' --timeout=1800 -rltzq "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                    fi
+                    # if scp.exp failed, try again
+                    #[[ 0 -eq $? ]] || $scp "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                    [[ 0 -eq $? ]] || {
+                        if [[ -n "$ABSPASSWD" ]]; then
+                            $abs_path/scp.exp $push_file_list_one "$push_remote_dir/" push >>$log_file.$ip.ssh 2>&1 </dev/null
+                        else
+                            /usr/bin/rsync -e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" --timeout=1800 -rltzq "$push_file_list_one" ${ABSUSER}@${ABSIP}:$push_remote_dir >>$log_file.$ip.ssh 2>&1 </dev/null
+                        fi
+                    }
+                    [[ 0 -eq $? ]] || {
+                        echo "FAIL_FLAG scp $push_file_list_one to $ip failed. exit ..." >> $log_file.$ip.ssh
+                        echo "$ip" >&$fifo_fd
+                        exit 1
+                    }
+                done
+                echo "${others}_____cmd finish" >$log_file.$ip
+            }
+
+            # 2
+            # do the remote cmd
+            # tee -a $log_file.$ip.ssh 这里 -a 是为了把之前的信息也保存了，用于错误定位的信息越详细越好
+            [[ -n "$remote_cmd" ]] && {
+                if [[ -n "$ABSPASSWD" ]]; then
+                    cmd_return=`$abs_path/ssh.exp "$remote_cmd" 2>&1 </dev/null |tee -a $log_file.$ip.ssh |sed -n "s/^_\{5\}/${others}_____/p"`
+                else
+                    cmd_return=`$ssh -l $ABSUSER $ABSIP "$remote_cmd" 2>&1 </dev/null |tee -a $log_file.$ip.ssh |sed -n "s/^_\{5\}/${others}_____/p"`
+                fi
+                # 这里和 1 的判断相同
+                if [[ -n "$cmd_return" ]]; then
+                    echo "$cmd_return" > $log_file.$ip
+                else
+                    :> $log_file.$ip
+                    echo "$ip" >&$fifo_fd
+                    exit 2
+                fi
+            }
+
+            # 3
+            # pull file to local host
+            [[ -n "$pull_file_list" ]] && {
+                # director to stor pull_file_list
+                [[ -d "$pull_local_dir/$ip" ]] || mkdir $pull_local_dir/$ip
+                # add ip to file name
+                if [[ -n "$ABSPASSWD" ]]; then
+                    $abs_path/scp.exp $pull_file_list "$pull_local_dir/$ip/" pull >>$log_file.$ip.ssh 2>&1 </dev/null
+                else
+                    $scp ${ABSUSER}@${ABSIP}:$pull_file_list "$pull_local_dir/$ip/" >>$log_file.$ip.ssh 2>&1 </dev/null
+                fi
+                # if rsync failed, try again
+                [[ 0 -eq $? ]] || {
+                    #$scp ${ABSUSER}@${ABSIP}:$pull_file_list "$pull_local_dir/$ip/" >>$log_file.$ip.ssh 2>&1 </dev/null
+                    if [[ -n "$ABSPASSWD" ]]; then
+                        $abs_path/scp.exp $pull_file_list "$pull_local_dir/$ip/" pull >>$log_file.$ip.ssh 2>&1 </dev/null
+                    else
+                        $scp ${ABSUSER}@${ABSIP}:$pull_file_list "$pull_local_dir/$ip/" >>$log_file.$ip.ssh 2>&1 </dev/null
+                    fi
+                }
+                if [[ 0 -eq $? ]]; then
+                    [[ -s "$log_file.$ip" ]] || echo "${others}_____cmd finish" >>$log_file.$ip
+                else
+                    echo "FAIL_FLAG scp $ip $pull_file_list to localhost failed. exit ..." >> $log_file.$ip.ssh
+                    :> $log_file.$ip
+                    echo "$ip" >&$fifo_fd
+                    exit 4
+                fi
+            }
+
+            # child finish and send ip to parent
+            echo "$ip" >&$fifo_fd
+        ) &
+        sleep 0.05
+    done <<< "`{ egrep "^([0-9]{1,3}\.){3}[0-9]{1,3}" $ip_list; seq $max_process; }`"
+
+    wait
+    eval "exec $fifo_fd>&-"
+
+    echo -e "abs finish\n"
+}
+
+
+#############
+# main
+#############
+#pgid="-`cut -d' ' -f6 /proc/$$/stat`"
+pgid="-$$"
+trap "kill -- $pgid; exit $pgid;" SIGINT
+
+cd `dirname $0`
+abs_path=`dirname ${BASH_SOURCE[0]}`
+# do not show message in batch mode
+if [[ -n "$1" && "-y" == "$1" ]]; then
+    batch_flag="yes"
+    shift
+fi
+
+if [[ -n "$1" && "--nocolor" == "$1" ]]; then
+    color_flag="no"
+    shift
+fi
+
+if [[ ! -d "log" ]]; then
+    mkdir log || { echo "mkdir log failed !"; exit 1; }
+    chmod 775 log
+fi
+if [[ ! -d "tmp" ]]; then
+    mkdir tmp || { echo "mkdir tmp failed !"; exit 1; }
+    chmod 775 tmp
+fi
+
+[[ -s "$ip_list" ]] || sub_usage
+
+date=`date +%Y%m%d%H%M%S`
+[[ -z "$log_file" ]] && log_file=log/${0##*/}.$$.$date.log
+rm -f $log_file
+
+# max default child process
+max_process=${max_process:-100}
+
+# defined ABSBWLIMIT will let scp.exp to use rsync, not scp
+export ABSUSER=${ABSUSER:-$USER}
+export ABSPORT=${ABSPORT:-36000}
+export ABSBWLIMIT=${ABSBWLIMIT:-1024}
+export ABSSCPTIMEOUT=${ABSSCPTIMEOUT:-300}
+export ABSSSHTIMEOUT=${ABSSSHTIMEOUT:-300}
+
+ip_num=`egrep -c "^([0-9]{1,3}\.){3}[0-9]{1,3}" $ip_list`
+[[ $max_process -gt $ip_num ]] && max_process=$ip_num
+
+#ssh=`which ssh`
+#ssh="/usr/bin/ssh -o StrictHostKeyChecking=no"
+ssh="/usr/bin/ssh -t -t -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+#scp="/usr/bin/scp -o StrictHostKeyChecking=no -r"
+#scp="/usr/bin/rsync -rltzq -e 'ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no' --timeout=$ABSSCPTIMEOUT"
+scp="/usr/bin/rsync -rltzq --timeout=$ABSSCPTIMEOUT"
+#-e "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+#scp="`which rsync` --timeout=60 --contimeout=60 -rltzq"
+#if [[ "$ABSUSER" == "Administrator" ]]; then
+#    scp="`which rsync` -rltzq"
+#else
+#    # -a eq -rlptgoD
+#    scp="`which rsync` -rltzq"
+#fi
+
+# same ip cant be accepted
+echo ""
+#sort -k1,1 $ip_list |uniq -c |awk '{if ($1 > 1) { print $0; exit 1;} }'
+#awk '{ s[$1]++ } END{ for (var in s) if ( s[var] > 1 ) { print var; exit 1; }; }' $ip_list
+grep '^[0-9]' "$ip_list" |awk '{ s[$1]++ } END{ for (var in s) if ( s[var] > 1 ) { print var; exit 1; }; }'
+[[ $? -eq 0 ]] || { echo -e "FAIL_FLAG same ip cant be accepted\n"; exit 1; }
+
+# tab check, not allow tab in this script
+grep -P '\t' $0 && {
+    echo "this script not allow tab, you must change tab to space, exit ...";
+    exit 1;
+}
+
+# do not show message in batch mode
+[[ -n "$batch_flag" ]] || {
+    # show ip list and number
+    echo "------IP LIST START--------"
+    cat $ip_list
+    echo "------ IP LIST END --------"
+    sub_cecho "$ip_num $ip_list"
+}
+
+# for stdout and stderr record
+tmp_result_file="/tmp/TMP_RESULT_FILE.$$"
+
+# use file cmd
+[[ -n "$push_file_list" ]] && {
+    push_remote_dir=${push_remote_dir:-/tmp}
+    # remove end /
+    push_file_list=`echo $push_file_list |sed 's@/[ \t\n]\+\|/$@ @g'`
+
+    # do not show message in batch mode
+    [[ -n "$batch_flag" ]] || {
+        sub_cecho "\npush to remote: $push_remote_dir"
+        echo "----------"
+        # file list
+        echo "$push_file_list" |sed 's/[ \t]\+/\n/g'
+    }
+}
+
+# only a script, pull is you script
+[[ -n "$pull_file_list" ]] && {
+    pull_local_dir=${pull_local_dir:-/tmp}
+    # remove end /
+    #pull_file_list=`echo $pull_file_list |sed 's@/[ \t]\|/$@ @g'`
+    pull_file_list=`echo $pull_file_list |sed 's@/[ \t\n]\+\|/$@ @g'`
+
+    # do not show message in batch mode
+    [[ -n "$batch_flag" ]] || {
+        sub_cecho "\npull to local: $pull_local_dir"
+        echo "----------"
+        # show file list
+        echo "$pull_file_list"
+    }
+}
+
+# do not show message in batch mode
+[[ -n "$batch_flag" || -z "$remote_cmd" ]] || {
+    echo -e "\nremote command:\n----------\n$remote_cmd"
+}
+
+# 为所有的输出打标签
+# 下面那个cmd,必须在子shell中运行,否则代码块退出时整个ssh链接就退出了,得不到错误输出
+# ')' must be next line of the cmd, or may be comment by cmd like this: # command )
+[[ -n "$remote_cmd" ]] && {
+    # this block let you to get all command log
+    remote_cmd="
+        {
+            (
+                $remote_cmd
+                :
+            );
+            echo 'cmd finish';
+        } >$tmp_result_file 2>&1; sed 's/^/_____/' $tmp_result_file; rm -f $tmp_result_file;
+    "
+}
+
+# do not show message in batch mode
+[[ -n "$batch_flag" ]] || {
+    # make sure
+    echo -ne "\n----------\nsure for your iplist and command ? [yes/no] "
+    read my_answer < /dev/tty
+    [[ "yes" == "$my_answer" ]] || exit 0
+}
+
+sub_hs_jobs
+
+# unset local value
+unset batch_flag max_process remote_cmd push_remote_dir push_file_list pull_file_list pull_local_dir
+#unset batch_flag max_process abs_dir ABSPORT ABSBWLIMIT ABSSCPTIMEOUT ABSSSHTIMEOUT remote_cmd push_remote_dir push_file_list pull_file_list pull_local_dir
+
+#[[ -n "$push_file_list" ]] && rm $push_file_list
+#./multi_process: line 91: echo: write error: Interrupted system call
+

@@ -1,0 +1,39 @@
+=head1 Name
+
+    multi_process - change a lot of loginc; push and pull file change gzip to zip; push and pull file change absolute path to relative path 
+
+=head1 SYNOPSIS
+
+    multi_process [options] [push_file_list|push_remote_dir] [log_file] [max_process] 
+                  [ABSUSER] [ABSPASSWD] [ABSBWLIMIT] ...
+    source multi_procress
+
+    default: push_remote_dir=/tmp
+    default: pull_local_dir=/tmp
+    default: log_file=log/multi_process.date.log
+    default: max_process=100
+    default: ABSPORT=36000
+    default: ABSBWLIMIT=1024
+    default: ABSSCPTIMEOUT=300
+    default: ABSSSHTIMEOUT=300
+
+=head1 DESCRIPTION
+
+    脚本有点复杂，说明稍后。。。
+
+    简单用法请看 example.sh
+    复杂一点的请看 com.sh
+    其他使用技巧或场景待添加
+
+=head1 OPTIONS
+
+    -y      #-y for batch mode
+            #flag:source multi_procress -y
+
+=head1 BUGS
+    
+    无
+
+=head1 Author
+
+    rtx: weiweilai

@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+# automatic get or put file scipt
+# by weiweilai 20110117
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+
+sub_usage() {
+    [[ $0 =~ "rput$" ]] && echo "#put file to remote host:/tmp"
+    [[ $0 =~ "rget$" ]] && echo "#get file from remote host(to local dir /tmp)"
+    echo "USAGE: ./$0 set module     file1 file2 ..."
+    echo "USAGE: ./$0 ip|iplist_file file1 file2 ..."
+    exit 1
+}
+
+[[ $0 =~ "scp.sh" ]] && {
+    echo -e "ERR: you should \"ln -s $0 rput\" or \"ln -s $0 rget\" and use rget or rput command instead\n"
+}
+[[ $1 =~ ^(-h|--help)$ ]] && sub_usage
+[[ $# -lt 2 ]] && sub_usage
+
+# to current directory
+cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" || exit 1
+
+#source ~/lib/${USER}_passwd.lib
+if [[ -f "r.inc" ]]; then
+    source r.inc
+else
+    echo "r.inc not found"
+    exit
+fi
+
+pull_file_list="$@"
+
+# multi_process will unset pull_file_list, so cache it
+[[ -n $pull_file_list ]] && pull_file_list_tmp=$pull_file_list
+[[ -n $push_file_list ]] && push_file_list_tmp=$push_file_list
+
+#source $abs_dir/multi_process -y
+for host in `cat $ip_list |/bin/tr -d '\r'`; do
+    tmp_dir=`echo $host |awk -F'[@.]' '{print "/tmp/"$2}'`
+    [[ -d $tmp_dir ]] || mkdir $tmp_dir
+    scp -r $host:$pull_file_list $tmp_dir/
+done
+
+#for remote_ip in `awk '{print $1}' $ip_list`; do
+for host in `cat $ip_list |/bin/tr -d '\r'`; do
+    tmp_dir=`echo $host |awk -F'[@.]' '{print "/tmp/"$2}'`
+    for file in $pull_file_list_tmp; do
+        ls -ld $tmp_dir/`basename $file`
+    done
+done
+
+## only one ip
+#if grep -c '[0-9]' $ip_list |grep -qw 1; then
+#    remote_ip=`echo $remote_ip |awk '{print $1}'`
+#    if mv /tmp/$remote_ip/* /tmp/; then
+#        rm -rf /tmp/$remote_ip
+#        for file in $pull_file_list; do
+#            ls -ld /tmp/`basename $file`
+#        done
+#    else
+#        echo 'ERR: get file failed'
+#    fi
+#else
+#    for remote_ip in `awk '{print $1}' $ip_list`; do
+#        for file in $pull_file_list; do
+#            ls -ld /tmp/$remote_ip/`basename $file`
+#        done
+#    done
+#fi
+
+unset pull_file_list_tmp push_file_list_tmp
+# clean log, function in the r.inc
+sub_clean

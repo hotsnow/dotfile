@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+# run remote cmd, no need password
+# by weiweilai 20110402
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+# add user00 to do remote command by weiweilai 20111219
+
+sub_usage() {
+    echo "*** run remote command ***"
+    echo "USAGE: ./$0 [user] ip|ip_file command"
+    echo "USAGE: ./$0 [user] set module command"
+    echo "   eg: ./$0 ~/iplist/s999.iplist ls /tmp"
+    echo "   eg: ./$0 s999 tlog ls /tmp"
+    echo "   eg: ./$0 s999 tlog \"date; date\"  # take care of this \";\""
+    echo "   eg: ./$0 root s999 tlog \"id; whoami\""
+    exit 1
+}
+
+[[ $1 =~ ^(-h|--help)$ ]] && sub_usage
+[[ $# -lt 2 ]] && sub_usage
+
+# to current directory
+cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" || exit 1
+
+#source ~/lib/${USER}_passwd.lib
+if [[ -f "r.inc" ]]; then
+    # shellcheck source=r.inc
+    source r.inc
+else
+    echo "r.inc not found"
+    exit
+fi
+
+#source ~/lib/${USER}_passwd.lib
+#[[ -f ~/lib/${USER}_passwd.lib ]] && source ~/lib/${USER}_passwd.lib
+
+if [[ -n "$sudo_user" ]]; then
+    remote_cmd="echo '$@' |sudo -u $sudo_user bash"
+else
+    remote_cmd="$@"
+fi
+
+# multi_process will unset pull_file_list, so cache it
+[[ -n $pull_file_list ]] && pull_file_list_tmp=$pull_file_list
+[[ -n $push_file_list ]] && push_file_list_tmp=$push_file_list
+
+source $abs_dir/multi_process
+
+# incase use defined pull files
+if [[ -n $pull_file_list_tmp ]]; then
+    for remote_ip in `awk '{print $1}' $ip_list`; do
+        for file in $pull_file_list_tmp; do
+            ls -ld /tmp/$remote_ip/`basename $file`
+        done
+    done
+fi
+
+unset pull_file_list_tmp push_file_list_tmp
+# clean log, function in the r.inc
+sub_clean

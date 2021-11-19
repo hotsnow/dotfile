@@ -1,0 +1,93 @@
+#!/bin/bash
+
+# run remote cmd, no need password
+# by weiweilai 20110402
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+# add user00 to do remote command by weiweilai 20111219
+
+sub_usage() {
+    echo "*** run remote command ***"
+    echo "USAGE: `basename $0` ip|ip_file [root] command"
+    echo "USAGE: `basename $0` set module [root] command"
+    echo "   eg: `basename $0` ~/iplist/s999.iplist ls /tmp"
+    echo "   eg: `basename $0` s999 tlog ls /tmp"
+    echo "   eg: `basename $0` s999 tlog \"date; date\"  # take care of this \";\""
+    echo "   eg: `basename $0` s999 tlog root \"id; whoami\""
+    exit 1
+}
+
+[[ $1 =~ "^(-h|--help)$" ]] && sub_usage
+[[ $# -lt 2 ]] && sub_usage
+
+# get ip from set and module
+sub_get_ip() {
+    local set_name=$1
+    local module_name=$2
+
+    [[ $module_name == "all" ]] && {
+        grep -iw $1 ~/cc/module.list |egrep -wv "gdb|gdr|tlog"
+        return
+    }
+
+    # 20101201 add support for multi ip at one module
+    local match_ip_num=`grep -ic "\<$set_name.*$module_name" ~/cc/module.list`
+    if [[ $match_ip_num -gt 1 ]]; then
+        local match_line=`grep -i "\<$set_name.*$module_name" ~/cc/module.list`
+        echo -e "$match_line" |cat -n 1>&2
+        read -p "input line number to login: " answer
+        answer=`echo -e "$answer" |sed 's/,/p\;/g;s/$/p/'`
+        echo -e "$match_line" |sed -n "${answer}" |grep -i "\<$set_name.*$module_name"
+    else
+        grep -i "\<$set_name.*$module_name" ~/cc/module.list
+    fi
+}
+
+#source ~/lib/${USER}_passwd.lib
+#[[ -f ~/lib/${USER}_passwd.lib ]] && source ~/lib/${USER}_passwd.lib
+
+# no log
+log_file=/data/tmp/rcmd_${USER}_$$.log
+ip_list=/data/tmp/rcmd_${USER}_$$.iplist
+abs_dir=/data/tools/abs_new
+
+export ABSUSER=root
+export ABSBWLIMIT=22
+
+if [[ "$1" == 'root' ]]; then
+    export ABSPASSWD=$ROOT_PASSWD
+    export ABSUSER=root
+    export ABSPORT=22
+    shift
+elif [[ "$1" == 'Administrator' || "$1" == "admin" ]]; then
+    export ABSPASSWD=$ROOT_PASSWD
+    export ABSUSER=Administrator
+    shift
+elif [[ "$1" == 'dhom' ]]; then
+    dhom=yes
+    shift
+fi
+
+# get ip list
+if [[ $1 =~ ([0-9]{1,3}\.){3}[0-9]{1,3} ]]; then
+    echo "$1" > $ip_list
+    shift
+elif [[ -f "$1" ]]; then
+    cat $1 > $ip_list
+    shift
+else
+    sub_get_ip $1 $2 > $ip_list
+    shift 2
+fi
+
+if [[ "$dhom" == "yes" ]]; then
+    remote_cmd="echo '$@' |sudo -u dhom bash"
+else
+    remote_cmd="$@"
+fi
+
+source $abs_dir/multi_process -y
+
+# clean log
+rm -f $ip_list $log_file
+find /data/tmp/ -name rcmd_${USER}_\* -mtime +1 -delete 2>/dev/null

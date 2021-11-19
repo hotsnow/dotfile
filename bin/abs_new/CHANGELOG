@@ -1,0 +1,17 @@
+=head1 V3.3 20101231
+
+    change a lot of loginc 
+    push and pull file change gzip to zip
+    push and pull file change absolute path to relative path
+
+=head1 V3.2 20101221
+
+    fix cygwin md5sum bug 
+
+=head1 V3.1 20100504
+
+    add push_file and remote_cmd action at the same time
+
+=head1 V3.0 20100429
+
+    add push_file action

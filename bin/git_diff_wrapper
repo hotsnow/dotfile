@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# for fit diff
+# setting in ~/.gitconfig
+
+vimdiff "$2" "$5"

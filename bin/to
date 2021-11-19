@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+# run remote cmd, no need password
+# by weiweilai 20110402
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+# add user00 to do remote command by weiweilai 20111219
+
+sub_usage() {
+    echo "*** go to remote host ***"
+    echo "USAGE: ./$0 iplist [egrep_regrex]   # get all ip list or get iplist by egrep regrex"
+    echo "USAGE: ./$0 ip"
+    echo "USAGE: ./$0 set_name module_name"
+    echo "   eg: ./$0 192.168.1.2"
+    echo "   eg: ./$0 chengzhen 08"
+    exit 1
+}
+
+echo "$1" |grep -Eqw -- "-h|--help" && sub_usage
+[[ $# -lt 1 ]] && sub_usage
+
+# to current directory
+cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" || exit 1
+#cd "$(dirname "$(realpath "$0")")" || exit 1
+
+if [[ $1 == "list" ]]; then
+    cat module.list
+    exit 0
+fi
+
+#source ~/lib/${USER}_passwd.lib
+if [[ -f "r.inc" ]]; then
+    source r.inc
+else
+    echo "r.inc not found"
+    exit
+fi
+
+ABSUSER=$USER
+ABSUSER=weiwlai
+
+#if [[ $1 == rdp ]]; then
+#    type=rdp
+#    shift
+#else
+#    type=ssh
+#fi
+if [[ $(cat $ip_list |wc -l) -gt 5 ]]; then
+    read -r -p "go to more than 5 hosts? [y/n]: " answer
+    [[ $answer =~ y|Y|yes|YES ]] || exit 0
+fi
+
+for ip in `awk '{print $1}' $ip_list`; do
+    server_name=`echo $ip |awk -F'[@.]' '{print $2}'`
+    [[ -z $server_name ]] && server_name=${ip#*\.*\.}
+
+    if [[ $type == rdp ]]; then
+        #echo run command: m3pass to get pass, m3pass in bash_alias
+        ##echo /Applications/CoRD.app/Contents/MacOS/CoRD -host $ip -port 3389 -u Administrator -p $M3G_PASS
+        #/Applications/CoRD.app/Contents/MacOS/CoRD -host $ip -port 3389 -u Administrator -p $M3G_PASS >/dev/null 2>&1 &
+        #echo osascript rts.scpt $ip
+        osascript ~/bin/rts.scpt $ip
+    elif [[ -n "$TMUX" ]]; then
+        tmux new-window -n $server_name -- ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip
+        #screen -fn -t $server_name -- ssh -t -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip "/bin/bash -o emacs"
+    else
+        #ssh -t -q -o UseKeychain=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip "/bin/bash -o emacs"
+        ssh -o UseKeychain=yes $ABSUSER@$ip "/bin/bash -o emacs"
+    fi
+done

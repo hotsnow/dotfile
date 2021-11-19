@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# run remote cmd, no need password
+# by weiweilai 20110402
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+# add user00 to do remote command by weiweilai 20111219
+
+sub_usage() {
+    echo "*** go to remote host ***"
+    echo "USAGE: `basename $0` iplist [egrep_regrex]   # get all ip list or get iplist by egrep regrex"
+    echo "USAGE: `basename $0` ip"
+    echo "USAGE: `basename $0` set_name module_name"
+    echo "   eg: `basename $0` 192.168.1.2"
+    echo "   eg: `basename $0` chengzhen 08"
+    exit 1
+}
+
+echo "$1" |egrep -qw -- "-h|--help" && sub_usage
+#[[ $# -lt 2 ]] && sub_usage
+
+# get ip from set and module
+sub_get_ip() {
+    local set_name=$1
+    local module_name=$2
+
+    [[ $module_name == "all" ]] && {
+        grep -iw $1 ~/cc/module.list |egrep -wv "gdb|gdr|tlog"
+        return
+    }
+
+    # 20101201 add support for multi ip at one module
+    local match_ip_num=`grep -ic "\<$set_name.*$module_name" ~/cc/module.list`
+    if [[ $match_ip_num -gt 1 ]]; then
+        local match_line=`grep -i "\<$set_name.*$module_name" ~/cc/module.list`
+        echo -e "$match_line" |cat -n 1>&2
+        read -p "input line number to login: " answer
+        echo -e "$match_line" |sed -n "${answer}p"
+        #echo -e "$match_line" |sed -n "${answer}p" |grep -Pi "\b$set_name.*$module_name"
+    else
+        grep -i "\<$set_name.*$module_name" ~/cc/module.list
+    fi
+}
+
+#source ~/lib/${USER}_passwd.lib
+#[[ -f ~/lib/${USER}_passwd.lib ]] && source ~/lib/${USER}_passwd.lib
+
+# no log
+log_file=/data/tmp/rcmd_${USER}_$$.log
+ip_list=/data/tmp/rcmd_${USER}_$$.iplist
+abs_dir=/data/tools/abs_new
+
+export user=laiweiwei
+
+# get ip list
+if [[ $1 == "iplist" ]]; then
+    if [[ -n "$2" ]]; then
+        egrep "$2" $module_list |cat -n
+    else
+        cat -n $module_list
+    fi  
+    exit 0
+elif [[ $1 =~ ([0-9]{1,3}\.){3}[0-9]{1,3} ]]; then
+    ip=`echo "$1" |awk '{print $1}'`
+    server_name=tmp
+    shift
+else
+    ip=`sub_get_ip $1 $2 |awk '{print $1}'`
+    if [[ -n "$ip" ]]; then
+        server_name=`grep -w "$ip" $HOME/cc/module.list |awk '{print $2}'`
+        shift 2
+    else
+        echo "ERR: get ip failed"
+        exit 1
+    fi
+fi
+
+if grep -w "$ip" $HOME/cc/module.list |egrep -i "windows"; then
+    user=Administrator
+fi
+
+# werver name will be show in screen's title bar
+server_name=${server_name}_`echo $ip |cut -d'.' -f3,4`
+
+#screen -fn -t $server_name $HOME/bin/go.sh $user $ip
+#screen -fn -t $server_name ssh -A -l $user $ip
+screen -fn -t $server_name ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -l $user $ip
+

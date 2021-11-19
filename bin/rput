@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# automatic get or put file scipt
+# by weiweilai 20110117
+# add iplist support by weiweilai 20110602
+#echo "    default: bandwidth=20480"
+
+sub_usage() {
+    [[ $0 =~ "rput$" ]] && echo "#put file to remote host:/tmp"
+    [[ $0 =~ "rget$" ]] && echo "#get file from remote host(to local dir /tmp)"
+    echo "USAGE: ./$0 set module     file1 file2 ..."
+    echo "USAGE: ./$0 ip|iplist_file file1 file2 ..."
+    exit 1
+}
+
+[[ $0 =~ "scp.sh" ]] && {
+    echo -e "ERR: you should \"ln -s $0 rput\" or \"ln -s $0 rget\" and use rget or rput command instead\n"
+}
+[[ $1 =~ ^(-h|--help)$ ]] && sub_usage
+[[ $# -lt 2 ]] && sub_usage
+
+# to current directory
+cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" || exit 1
+
+#source ~/lib/${USER}_passwd.lib
+if [[ -f "r.inc" ]]; then
+    # shellcheck source=r.inc
+    source r.inc
+else
+    echo "r.inc not found"
+    exit
+fi
+
+# multi_process will unset pull_file_list, so cache it
+[[ -n "$pull_file_list" ]] && pull_file_list_tmp="$pull_file_list"
+[[ -n "$push_file_list" ]] && push_file_list_tmp="$push_file_list"
+
+remote_cmd_tmp="
+    for file in $push_file_list_tmp; do
+        ls -ld /tmp/\`basename \$file\` || echo 'ERR: put file \$file failed'
+    done
+"
+
+if [[ -n $remote_cmd ]]; then
+    remote_cmd="$remote_cmd_tmp; $remote_cmd"
+else
+    remote_cmd="$remote_cmd_tmp"
+fi
+
+#source $abs_dir/multi_process -y
+for host in `cat $ip_list |/bin/tr -d '\r'`; do
+    scp -r $push_file_list_tmp $host:/tmp/
+done
+
+
+unset pull_file_list_tmp push_file_list_tmp
+# clean log, function in the r.inc
+sub_clean
