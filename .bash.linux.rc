@@ -1,0 +1,75 @@
+############################
+# Only for Linux
+############################
+alias ls="ls --color=auto"
+
+# make xterm support gbk
+alias wterm='export export LC_ALL=zh_CN.gbk; luit -encoding gbk screen'
+alias xterm='xterm -fullscreen -fg green3 -bg black -geometry 155x55 -fn -misc-fixed-medium-r-normal--18-120-100-100-c-90-iso10646-1'
+
+# ssh key chan
+/usr/bin/keychain -Q -q ~/.ssh/id_rsa
+[[ -f $HOME/.keychain/$HOSTNAME-sh ]] && source $HOME/.keychain/$HOSTNAME-sh
+
+export PROMPT_COMMAND='echo -e "\033]0;$(whoami)@$(hostname):$(pwd)\007"'
+export PROMPT_COMMAND="history -a; $PROMPT_COMMAND"
+# set for screen window title
+if [[ "$TERM" == "screen" ]]; then
+    export PROMPT_COMMAND='echo -e -n k`whoami`@`pwd`\\'
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+[ -f /etc/bash_completion ] && . /etc/bash_completion
+#[ -f /data/conf/tmux.completion.bash ] && source /data/conf/tmux.completion.bash
+
+## ibus
+#export XMODIFIERS="@im=ibus"
+#export XIM=ibus
+#export GTK_IM_MODULE=xim
+#export QT_IM_MODULE=xim
+## fcitx
+#export LC_CTYPE="zh_CN"
+#export XMODIFIERS="@im=fcitx"
+#export XIM=fcitx
+#export XIM_PROGRAM=/usr/bin/fcitx
+#export GTK_IM_MODULE=xim
+#export QT_IM_MODULE=xim
+
+# the random_english.txt created by ~/bin/random_english.pl
+if [ "$TERM" == "xterm" -o "$TERM" == "screen" ]; then
+    # study english
+    rand_line=$(($RANDOM % 2094))
+    [ $rand_line -eq 0 ] && { $rand_line = 1; }
+    random_english=$(sed -n ''$rand_line'p' ~/english/computer/computer_words.txt)
+    #load_average=$(uptime |cut -d: -f 4)
+    PS1='> \j <  ${random_english}\n\[\033[30;42m\][\t]\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]-$?-\$ '
+fi
+
+alias w3m='w3m -4 www.google.cn'
+alias ug='sudo apt-get update && sudo aptitude safe-upgrade'
+
+## do something before reboot and halt
+#sub_encfs() {
+#    if [[ -n "$(ls ~/mybox)" ]]; then
+#        /usr/bin/fusermount -u ~/mybox
+#        [[ "test$?" == "test0" ]] && {
+#            echo "`date` umount encfs" |tee -a ~/.encfs.log
+#            ssh-agent -k
+#            rm -f ~/.agent.env
+#            history -c
+#        }
+#    else
+#        echo "`date` mybox not mount" |tee -a ~/.encfs.log
+#    fi
+#}
+#
+#reboot() {
+#    sub_encfs
+#    sudo /sbin/reboot
+#}
+#
+#halt() {
+#    sub_encfs
+#    sudo /sbin/halt -p
+#}

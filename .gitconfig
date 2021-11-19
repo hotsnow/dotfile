@@ -1,0 +1,51 @@
+[core]
+    trustctime = false
+    editor = nvim
+    filemode = false
+    hooksPath = ~/.git/hooks
+
+# This is Git's per-user configuration file.
+[user]
+# Please adapt and uncomment the following lines:
+    name = Weiwei Lai
+    email = weiwei.lai@daimler.com
+[diff]
+    # git_diff_wrapper is a script in ~/bin/git_diff_wrapper
+    # this script just one line: vimdiff "$2" "$5"
+    external = git_diff_wrapper
+    #tool = vimdiff
+[pager]
+  diff =
+[diff]
+    tool = nvimdiff
+[difftool "nvimdiff"]
+    prompt = false
+    # Be able to abort all diffs with `:cq` or `:cquit`
+    trustExitCode = true
+    cmd = nvim -d $LOCAL $REMOTE
+[merge]
+    tool = nfugitive
+[mergetool "nvimdiff4"]
+    cmd = nvim -d $LOCAL $BASE $REMOTE $MERGED -c '$wincmd w' -c 'wincmd J'
+[mergetool "nfugitive"]
+    keeptemporaries = false
+    keepbackups = false
+    prompt = false
+    trustexitcode = false
+    cmd = nvim -f -c "Gdiff" "$MERGED"
+
+[push]
+    default = current
+[alias]
+    last = log -1 --stat
+    cp = cherry-pick
+    co = checkout
+    cl = clone
+    ci = commit
+    st = status -sb
+    br = branch
+    unstage = reset HEAD --
+    dc = diff --cached
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %Cblue<%an>%Creset' --abbrev-commit --date=relative --all
+[pull]
+    rebase = false

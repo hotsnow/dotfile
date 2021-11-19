@@ -1,0 +1,181 @@
+# my own profile
+############################
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# 命令提示符的格式和颜色,颜色的定义:开头是 "\033" 是转义字符的ASII码，接着是 "[" ，然后是两位的颜色代码，最后以 "m" 结尾，结束颜色用 "\033[00m" 。
+# 颜色代米用 "\[\]" 括起来，记得要加反斜扛。否则命令行较长是导致光标回不到命令行的开始。
+# 不同的颜色效果可以用冒号分开，例如 1 代表家粗，42 代表绿色背景颜色等等
+# \$ 表示 uid=0 就 # 否则就 $
+# \e]0; 表示mac里面显示终端标题
+#PS1='\[\033[30;42m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]-\j-$?-\$ '
+
+# _git_ps1 in $HOME/bin/git-prompt.sh
+source $HOME/bin/git-prompt.sh
+# this part is for screen \[\033k\033\\\]
+#export PS1='\[\033k\033\\\]\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '
+export PS1='\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '
+
+# autojump
+[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh                                          
+
+# disable XON/XOFF flow control (^s/^q) 
+stty -ixon
+
+# for plenv
+which plenv > /dev/null && {
+    [[ $PATH =~ '.plenv/shims' ]] || eval "$(/usr/local/bin/plenv init -)"
+}
+
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Avoid duplicates
+export HISTCONTROL=ignoredups:erasedups  
+# When the shell exits, append to the history file instead of overwriting it
+shopt -s histappend
+# history time format
+export HISTTIMEFORMAT='%F %T '
+# After each command, append to the history file and reread it
+#export PROMPT_COMMAND="history -a; history -c; history -r"
+export HISTIGNORE="&:ls:ll:la:l.:pwd:exit:clear"
+
+# for screen dynamic title, title will be the program name which you are running
+#PROMPT_COMMAND='echo -ne "\033k\033\0134"'
+#alias screen='screen -c $HOME/conf/screenrc'
+
+export EDITOR=vim
+export VISUAL=vim
+#export MYVIMRC="$HOME/dotfiles/vimrc"
+#export VIMINIT="source $MYVIMRC"
+
+# mysql prompt
+export MYSQL_PS1="(\u@\h) [\d]> "
+
+# change /etc/default/locale
+export LC_ALL="en_US.UTF-8"
+export LANG="en_US.UTF-8"
+#export LANGUAGE="en_US.UTF-8"
+#export LC_CTYPE="zh_CN.UTF-8"
+# some more aliases
+
+# syntax on and hight light for view
+alias view="vim -R"
+alias mv='mv -i'
+alias rm='rm -i'
+alias cp='cp -i'
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+alias igrep='egrep -i --color=auto'
+alias vi="vim"
+alias salt-ssh='sudo salt-ssh --roster ~/work/salt/roster'
+alias clts='curl -o /dev/null -s -w %{time_connect}/%{time_starttransfer}/%{time_total}'
+alias ssdb='ssdb-server /usr/local/etc/ssdb.conf'
+alias sshproxy='ssh -CNgf -D 127.0.0.1:8081 vps'
+#alias tmux='tmux -f $HOME/conf/tmux.conf'
+alias psc='ps xawf -eo pid,user,cgroup,args'
+alias myip='curl -4 ifconfig.co'
+alias s='sdcv'
+alias weather='curl http://wttr.in/Auckland'
+alias pweb='perl -MMojolicious::Lite -MCwd -e "app->static->paths->[0]=getcwd; app->start" daemon -l http://*:8000'
+alias gitlog='git log --pretty=format:"[%h] %ae, %ar: %s" --stat'
+
+# git the dotfile
+alias config=git --git-dir=$HOME/.cfg/ --work-tree=$HOME
+
+# make terminal-notifier work for tmux
+which reattach-to-user-namespace >/dev/null && alias terminal-notifier='reattach-to-user-namespace terminal-notifier'
+
+#KUBECONFIG=~/.kube/config:~/config kubectl config view --flatten
+which kubectl >/dev/null && source <(kubectl completion bash)
+
+# for virtualbox
+export VBOX_USB=USBFS
+alias vxp='vboxmanage startvm winxp --type headless >/dev/null 2>&1 &'
+alias rxp='rdesktop -K -T winxp -P -D -z -0 -a 16 -g 98% -uAdministrator -padmin 127.0.0.1:3389 -r clipboard:PRIMARYCLIPBOARD &'
+
+# perl
+#alias cpanm='cpanm -l /data/perl5 --mirror-only --mirror http://mirrors.163.com/cpan/ --mirror http://mirrors.sohu.com/CPAN/'
+#alias cpanm='cpanm -l /data/perl5';
+#alias perl='perl -I/data/perl5/lib/perl5 -I/data/perl5/share/perl5 -I/data/lib/perl5'
+#export PERL5LIB="/data/perl5/lib/perl5:/data/perl5/share/perl5"
+#PERL_MB_OPT="--install_base \"/data/perl5\""; export PERL_MB_OPT;
+#PERL_MM_OPT="INSTALL_BASE=/data/perl5"; export PERL_MM_OPT;
+
+# set PATH so it includes user's private bin directories
+export PATH="$HOME/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/sbin/:$HOME/go/bin"
+
+
+## for go lang
+if [[ -d "$HOME/go" && -z $GOPATH ]]; then
+    #export GOROOT=/usr/local/opt/go/libexec
+    export GOPATH=$HOME/go
+    export PATH=$PATH:$GOPATH/bin:$GOROOT/bin
+fi
+
+function curl2json {
+    local url=$1
+
+    curl -s "$url" |python -m json.tool
+}
+
+function wscreen {
+    /bin/cp -f /data/conf/screenrc /data/conf/screenrc_win
+    sed -i '/defencoding gbk/s/^#//' /data/conf/screenrc_win
+    sed -i '/encoding gbk gbk/s/^#//' /data/conf/screenrc_win
+    sed -i '/sessionname/s/weiwei/windows/' /data/conf/screenrc_win
+    screen -c /data/conf/screenrc_win
+}
+
+function xt {
+    if echo "$TERM" |grep "xterm\|screen"; then
+        export XTERM_TITLE=$1;
+    fi
+}
+
+function godoc {
+    godoc=`which godoc` 
+    $godoc $@ |less
+}
+
+function tmuxstart {
+    # var for session name (to avoid repeated occurences)
+    sn=$RANDOM
+
+    # Start the session and window 0 in $HOME
+    cd $HOME
+    /usr/bin/tmux new-session -s "$sn" -n $HOME -d
+
+    # Create a bunch of windows in /var/log
+    /usr/bin/tmux new-window -t "$sn:0" -n home -c "$HOME/"
+    /usr/bin/tmux new-window -t "$sn:1" -n work -c "$HOME/work"
+    /usr/bin/tmux new-window -t "$sn:2" -n fun  -c "$HOME/fun"
+
+    # Select window #1 and attach to the session
+    /usr/bin/tmux select-window -t "$sn:0"
+    /usr/bin/tmux -2 attach-session -t "$sn"
+}
+
+function m3pass {
+    m3g_sec='xxxxxxx'
+
+    stty -echo
+    read -p "enter your password: " key
+    stty echo
+    echo
+
+    # openssl enc -blowfish -a -salt -in original.txt -out encrypted.txt -pass pass:secret
+    # echo "pass" |openssl enc -blowfish -a -pass pass:secret
+    export M3G_PASS=`echo "$m3g_sec" |openssl enc -blowfish -a -d -pass pass:"$key"`
+    if [[ -z $M3G_PASS ]]; then
+        echo decrpt key failed
+    fi
+}
+
+
+PATH="$PATH:/Users/stonelai/.mos/bin"
