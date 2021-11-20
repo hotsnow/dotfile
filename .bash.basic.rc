@@ -194,4 +194,4 @@ function random_english {
         grep "^$line," ~/.files/english.csv
     fi
 }
-export PS1='\n\[$(random_english)\]\n\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '
+export PS1='\n\[$(random_english)\]\n\[\033[30;42m\]\u@\h:\[\033[00m\]\w$(__git_ps1)-\j-$?-\$ '
