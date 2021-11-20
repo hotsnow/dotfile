@@ -17,7 +17,6 @@ esac
 source $HOME/bin/git-prompt.sh
 # this part is for screen \[\033k\033\\\]
 #export PS1='\[\033k\033\\\]\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '
-export PS1='\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '
 
 # autojump
 [ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh                                          
@@ -85,8 +84,8 @@ alias weather='curl http://wttr.in/Auckland'
 alias pweb='perl -MMojolicious::Lite -MCwd -e "app->static->paths->[0]=getcwd; app->start" daemon -l http://*:8000'
 alias gitlog='git log --pretty=format:"[%h] %ae, %ar: %s" --stat'
 
-# git the dotfile
-alias config=git --git-dir=$HOME/.cfg/ --work-tree=$HOME
+# git the dotfile: https://www.atlassian.com/git/tutorials/dotfiles
+alias config='git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
 
 # make terminal-notifier work for tmux
 which reattach-to-user-namespace >/dev/null && alias terminal-notifier='reattach-to-user-namespace terminal-notifier'
@@ -178,4 +177,21 @@ function m3pass {
 }
 
 
-PATH="$PATH:/Users/stonelai/.mos/bin"
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+[ -f /etc/bash_completion ] && source /etc/bash_completion
+[ -f $HOME/.tmux/tmux.completion.bash ] && source $HOME/.tmux/tmux.completion.bash
+
+
+# the random_english.txt created by ~/bin/random_english.pl
+function random_english {
+    if [[ -f ~/.files/english.csv ]]; then
+        #total=$(grep -Ec '^[0-9]+,"[a-zA-Z]+"' ~/.files/english.csv)
+        # study english
+        line=$(($RANDOM % 1000))
+
+        #awk -F',' '/^'"$line"',"[a-zA-Z]+"/{print $0}' ~/.files/english.csv
+        grep "^$line," ~/.files/english.csv
+    fi
+}
+export PS1='\n\[$(random_english)\]\n\[\033[01;34m\]\w\[\033[00m\]$(__git_ps1)-\j-$?-\$ '

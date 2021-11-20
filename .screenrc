@@ -1,0 +1,120 @@
+# change the ^a to ^j
+escape ^J^J
+ 
+# didn't show the startup screen
+startup_message off
+ 
+#caption always "%?%F%{-b 4w}%:%{-b bb}%? %H | %l | %m-%d %c |%?%F%{-b 4w}%?%L=%-Lw%45>%{-b w4}%n%f* %t%{-}%+Lw%-0<"
+#caption always "%?%F%{-b 4w}%?%L=%-Lw%45>%{-b w4}%n%f* %t%{-}%+Lw%-0<"
+#termcapinfo xterm 'hs:ts=\E]2;:fs=\007:ds=\E]2;screen\007'
+hardstatus on
+hardstatus string '%{= kG}[%{G}%H%? %1`%?%{g}][%= %{= kw}%-w%{+b yk} %n*%t%?(%u)%? %{-}%+w %=%{g}]'
+#hardstatus string '%{= kG}[%{G}%H%? %1`%?%{g}][%= %{= kw}%-w%{+b yk} %n*%t%?(%u)%? %{-}%+w %=%{g}][%{B}%m/%d %{W}%C%A%{g}]'
+hardstatus alwayslastline
+
+
+term xterm-256color
+#termcapinfo xterm* 'Co#256:AB=\E[48;5;%dm:AF=\E[38;5;%dm'
+#attrcolor b ".I"
+#defbce "on"
+
+#defflow off
+
+# set default session name
+sessionname weiwei
+
+# 屏幕缓冲区 1024 行。
+defscrollback 10240
+
+# open several windows after screen start
+#screen -fn -t foobar -L 2 telnet foobar
+
+#screen -t home
+#screen -t work
+#select 0
+
+#chdir $HOME
+##split
+##resize -v +8
+##focus down
+##select 4
+#layout attach home
+#layout select home
+
+# do not show error message
+vbell off
+
+# Setting the title to the name of the running program
+# Suppose your bash prompt is "\u@\h:\w\$". Put this in your .screenrc:
+shelltitle "$ |bash"
+# and this in your .bashrc or .profile:
+#export PS1='\[\033k\033\\\]\u@\h:\w\$ '
+
+# keep title not flash
+#defdynamictitle off
+#defdynamictitle on
+
+# 分屏时窗口减小 5 行
+bind - resize -15
+# 分屏时窗口加大 2 行，加大和减小其实是一样的，所以用来微调，呵呵
+bind + resize +15
+# 窗口一样大
+bind = resize =
+
+# unbind hotkey x, so, you wont lock screen again
+bind x
+
+#charset BBBB02
+defencoding UTF-8
+bind g encoding GBK
+bind u encoding UTF-8
+
+# switch windows with F3 (prev) and F4 (next)
+#bindkey "^[OR" prev
+#bindkey "^[OS" next
+#bind N layout next
+#bind P layout prev
+
+#Move the input focus to the next region
+bind j focus down
+bind k focus up
+bind t focus top
+bind b focus bottom
+
+## makes "C-a - 0" select window 10, "C-a - 1" window 11, etc.
+#bind -c demo2 0 select 10
+#bind -c demo2 1 select 11
+#bind -c demo2 2 select 12
+#bind -c demo2 3 select 13
+#bind -c demo2 4 select 14
+#bind -c demo2 5 select 15
+#bind -c demo2 6 select 16
+#bind -c demo2 7 select 17
+#bind -c demo2 8 select 18
+#bind -c demo2 9 select 19
+#bind - command -c demo2
+bind  ! select 11
+bind  @ select 12
+bind \# select 13
+bind  $ select 14
+bind  % select 15
+bind \^ select 16
+bind  & select 17
+bind  * select 18
+bind  ( select 19
+bind  ) select 10
+
+#bind g exec go.sh
+#bind g screen -t home 0 go.sh
+
+# Sick of full-screen programs like vim remaining in the scrollback buffer after you've closed them?
+altscreen on
+
+#deflogin off
+
+## for mac
+#bind > exec sh -c "pbpaste > /tmp/screen-exchange && screen -X readbuf"
+#bind < eval "exec sh -c 'pbpaste > /tmp/screen-exchange'" "readbuf" 
+
+# reenable ssh session https://werat.github.io/2017/02/04/tmux-ssh-agent-forwarding.html 
+setenv SSH_AUTH_SOCK ~/.ssh/ssh_auth_sock 

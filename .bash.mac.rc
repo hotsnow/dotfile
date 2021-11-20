@@ -1,4 +1,9 @@
 #######################
+# The basic profile
+#######################
+[[ -f .bash.basic.rc ]] && source .bash.basic.rc
+
+#######################
 # Only for MAC bash
 #######################
 
