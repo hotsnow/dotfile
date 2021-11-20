@@ -3,6 +3,9 @@
 More detail here: [The best way to store your dotfiles](https://www.atlassian.com/git/tutorials/dotfiles)
 
 ```
+# add file to local
+git clone --bare <git-repo-url> $HOME/.cfg
+
 alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
 
 # backup the config file
