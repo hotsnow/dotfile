@@ -194,4 +194,21 @@ function random_english {
         grep "^$line," ~/.files/english.csv
     fi
 }
-export PS1='\n\[$(random_english)\]\n\[\033[30;42m\]\u@\h:\[\033[00m\]\w$(__git_ps1)-\j-$?-\$ '
+
+if [[ -z $TMUX ]] || [[ $(tmux display-message -p '#S') == fun ]]; then
+    export PS1='\n\[$(random_english)\]\n\[\033[30;42m\]\u@\h:\[\033[00m\]\w$(__git_ps1)-\j-$?-\$ '
+fi
+
+function se {
+    if [[ $# == 0 ]]; then
+        exit 0
+    fi
+
+    if [[ -f ~/.files/english_detail.csv ]]; then
+        while read line; do
+            [[ $line =~ ^[0-9],"$1" ]] && continue
+            [[ $line =~ ^[0-9], ]] && break
+            echo -e "$line"
+        done < <(grep -E -A 20 "^[0-9]+,\"$1\"" ~/.files/english_detail.csv)
+    fi
+}

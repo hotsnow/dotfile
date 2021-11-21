@@ -1,0 +1,391 @@
+" vimrc [2009.10.29]
+" update 2013.03.16 add mac support
+"
+" trick for sudo
+" :w !sudo tee %
+"
+
+" my own vim path
+"let &runtimepath = '$HOME/dotfiles/vim'
+
+" Specify a directory for plugins
+" - For Neovim: ~/.local/share/nvim/plugged
+" - Avoid using standard Vim directory names like 'plugin'
+call plug#begin('~/.vim/plugged')
+
+" Make sure you use single quotes
+
+" Shorthand notation; fetches https://github.com/junegunn/vim-easy-align
+Plug 'junegunn/vim-easy-align'
+
+Plug 'Yggdroot/indentLine'
+Plug 'vim-airline/vim-airline'
+Plug 'PProvost/vim-ps1'
+Plug 'vim-scripts/bash-support.vim'
+Plug 'WolfgangMehner/perl-support'
+Plug 'saltstack/salt-vim'
+"Plug 'pearofducks/ansible-vim', { 'do': './UltiSnips/generate.py' }
+Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
+Plug 'vim-syntastic/syntastic'
+Plug 'vim-scripts/DrawIt'
+Plug 'tpope/vim-fugitive'
+Plug 'chrisbra/Recover.vim'
+Plug 'stephpy/vim-yaml'
+Plug 'elzr/vim-json'
+Plug 'ctrlpvim/ctrlp.vim'
+Plug 'hashivim/vim-terraform'
+if has('nvim')
+    Plug 'neovim/nvim-lspconfig'
+endif
+
+" Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
+
+" Initialize plugin system
+call plug#end()
+
+" Yaml file handling
+autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab
+au BufRead,BufNewFile *.py set expandtab
+filetype plugin indent on
+autocmd FileType yaml setl indentkeys-=<:>
+
+"au BufNewFile,BufRead *.yaml,*.yml so ~/.vim/plugged/vim-yaml/after/syntax/yaml.vim
+
+
+" for vim-go to enable gopls
+let g:go_def_mode='gopls'
+let g:go_info_mode='gopls'
+let g:go_metalinter_enabled = ['vet', 'golint', 'errcheck']
+let g:go_metalinter_autosave = 1
+let g:go_fmt_command = "goimports"
+let g:go_auto_sameids = 1
+au FileType go nmap <Leader>sp <Plug>(go-def-split)
+au FileType go nmap <Leader>vs <Plug>(go-def-vertical)
+
+
+" Setting for syntastic plugin
+set statusline+=%#warningmsg#
+set statusline+=%{SyntasticStatuslineFlag()}
+set statusline+=%*
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 0
+let g:syntastic_check_on_open = 1
+let g:syntastic_check_on_wq = 0
+" enable check for perl
+let g:syntastic_perl_checkers = ['perl']
+let g:syntastic_enable_perl_checker = 1
+"et g:syntastic_perl_interpreter
+"let g:syntastic_perl_perl_exec
+let g:syntastic_perl_lib_path = [ "./lib", "./lib/auto", "/data/perl5/lib/perl5", "/data/perl5/lib/perl5/auto" ]
+
+" Setting for indentLine plugin
+" indentLine will overwrite 'conceal' color with grey by default. If you want to highlight conceal color with your colorscheme, disable by:
+"let g:indentLine_setColors = 0
+let g:indentLine_char = '¦'
+"let g:indentLine_enabled = 1
+"let g:indentLine_concealcursor = 'inc'
+"let g:indentLine_conceallevel = 2
+
+" setting for vim-json
+let g:vim_json_syntax_conceal = 0
+
+" default indent line for tab
+set list lcs=tab:\¦\ "there is a space at the end
+
+" Advanced ansible-vim config
+au BufRead,BufNewFile */playbooks/*.yaml,*/playbooks/*.yml set filetype=yaml.ansible
+let g:ansible_unindent_after_newline = 1
+let g:ansible_extra_syntaxes = "sh.vim python.vim"
+let g:ansible_attribute_highlight = "ob"
+let g:ansible_extra_keywords_highlight = 1
+
+" setting for vim-easy-align
+" Start interactive EasyAlign in visual mode (e.g. vipga)
+xmap ga <Plug>(EasyAlign)
+" Start interactive EasyAlign for a motion/text object (e.g. gaip)
+nmap ga <Plug>(EasyAlign)
+
+set autowrite
+
+" Powershell
+au BufNewFile,BufRead *.ps1,*.psc1 setf ps1
+
+" copy and paste On OSX
+if has("unix")
+    "if system('uname') == 'Darwin\n'
+    let s:uname = system("uname")
+    if s:uname == "Darwin\n"
+        "Mac options here
+        vmap my y:call system("pbcopy", getreg("\""))<CR>
+        nmap mp :call setreg("\"",system("pbpaste"))<CR>p
+    endif
+endif
+
+set encoding=utf-8
+set fileencoding=utf-8
+set fileencodings=utf-8,ucs-bom,gbk,gb2312,taiwan,ansi
+"set guifont=Courier_New:h12:w7
+"set guifontwide=NSimSun-18030,NSimSun
+
+"setlocal spell spelllang=en_us
+" cjk mean don't check chinese
+autocmd BufRead,BufNewFile *.md,*.txt setlocal spell spelllang=en_us,cjk
+set spellfile=$HOME/.vim/spell/my.spell.add
+
+set termencoding=utf-8
+set ambiwidth=double
+
+"" auto indent
+set smartindent
+set autoindent
+set cindent
+
+" ignore lower and uper character in search mode
+set ic
+" set noic
+
+" tab for 4 spaces
+set tabstop=4
+set shiftwidth=4
+set expandtab
+
+"autocmd Filetype coffeescript setlocal ts=2 sw=2 sts=2 expandtab
+autocmd BufRead,BufNewFile *.coffee,*.js,*.yaml setlocal ts=2 sw=2 sts=2 expandtab
+
+" count world number in replace: %s/\<word\>/&/g
+set report=1
+
+" 自动断词,保持英文单词格式。显示效果不好, 中文一段当一个词
+"set linebreak
+
+" It cause some chinese display uncorrect
+" read binary file
+" set binary
+
+" ctags
+"set tags=/usr/local/bin/ctags
+set tags=tags; "
+set autochdir
+let Tlist_Show_One_File=1
+let Tlist_Exit_OnlyWindow=1
+
+set vb t_vb=            " no bell
+
+"set foldmethod=indent
+set foldmethod=manual
+set foldmarker={,}
+set foldlevelstart=99   " not fold where vim start
+set foldlevel=3
+
+" highlight search
+map <F2> :nohlsearch<CR>
+imap <F2> :nohlsearch<CR>
+
+" Toggle paste mode
+map  gp :setlocal paste!<cr>
+imap gp :setlocal paste!<cr>
+
+" 单键绑定两个功能
+set nu
+map <F3> :set number!<CR>
+imap <F3> :set number!<CR>
+ 
+" show clipboard
+map <F4> :reg<CR>
+
+" mou open markdown file
+"map mo :MouOpen<CR><Esc>
+
+" get a blank line
+map go o <Esc>
+" insert a blank line
+map g<CR> i <CR><Esc>
+ 
+" go to the middle of a line
+map gm :call cursor(0, col("$")/2)<CR>
+
+" date command
+"map <F2> GoDate: <Esc>:read !date<CR>kJ
+
+" for git
+autocmd Filetype gitcommit setlocal spell textwidth=72
+
+set nocompatible        " Use Vim defaults (much better!)
+set bs=2                " allow backspacing over everything in insert mode
+"set ai                 " always set autoindenting on
+"set backup             " keep a backup file
+"set nobackup           " don't keep a backup file
+set backupcopy=yes
+set viminfo='20,\"50    " read/write a .viminfo file, don't store more
+                        " than 50 lines of registers
+set history=50          " keep 50 lines of command line history
+set ruler               " show the cursor position all the time
+
+" Only do this part when compiled with support for autocommands
+if has("autocmd")
+  " In text files, always limit the width of text to 78 characters
+  " autocmd BufRead *.txt set tw=78
+  " When editing a file, always jump to the last cursor position
+  autocmd BufReadPost *
+  \ if line("'\"") > 0 && line ("'\"") <= line("$") |
+  \   exe "normal! g'\"" |
+  \ endif
+endif
+
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+" t_Co mead number of color
+if &t_Co > 2 || has("gui_running")
+  syntax on
+  set hlsearch
+endif
+
+set splitright            " split window in right, better view for vs
+
+"if &term =~ "xterm" || &term =~ "screen"
+"    " vs 的时候可以用鼠标来调节左右大小。copy 的时候也不会跨区域了。
+"    " set mouse=a
+"    function! MouseYES()
+"        set mouse=a
+"        map <F5> :call MouseNO()<CR>
+"    endfunction
+"    function! MouseNO()
+"        set mouse=""
+"        map <F5> :call MouseYES()<CR>
+"    endfunction
+"    map <F5> :call MouseYES()<CR>
+" 
+"    set t_Co=8
+"    set t_Sb=[4%dm
+"    set t_Sf=[3%dm
+"endif
+ 
+"highlight blue color
+hi Comment ctermfg=LightBlue
+hi SpecialKey ctermfg=LightBlue
+hi Directory ctermfg=LightBlue
+"set background=light
+
+" :colorscheme then Space followed by TAB to show all suport colors.
+" color koehler " better for python script
+" color murphy
+color desert
+
+" This is for taglist
+" forbidden taglist to resizes the terminal window
+let Tlist_Inc_Winwidth = 0
+map <F7> :Tlist<CR>
+
+
+" Use perl compiler for all *.pl and *.pm files.
+" use :make to check your code for errors and the cursor on the line with the first problem. 
+" use :cnext and :cprevious to go through other error messages. 
+" use :clist will show a list of all error
+autocmd BufNewFile,BufRead *.p? compiler perl
+
+"" status line
+set ls=2        " Always show status line
+if has('statusline')
+   " Status line detail:
+   " %f     file path
+   " %F     full file path
+   " %y     file type between braces (if defined)
+   " %([%R%M]%)   read-only, modified and modifiable flags between braces
+   " %{'!'[&ff=='default_file_format']}
+   "        shows a '!' if the file format is not the platform
+   "        default
+   " %{'$'[!&list]}  shows a '*' if in list mode
+   " %{'~'[&pm=='']} shows a '~' if in patchmode
+   " (%{synIDattr(synID(line('.'),col('.'),0),'name')})
+   "        only for debug : display the current syntax item name
+   " %=     right-align following items
+   " #%n    buffer number
+   " %l/%L,%c%V   line number, total number of lines, and column number
+   function SetStatusLineStyle()
+      if &stl == '' || &stl =~ 'synID'
+         let &stl="%F %y%([%R%M]%)%{'!'[&ff=='".&ff."']}%{'$'[!&list]}%{'~'[&pm=='']}%=#%n %l/%L,%c%V "
+      else
+         let &stl="%F %y%([%R%M]%)%{'!'[&ff=='".&ff."']}%{'$'[!&list]} (%{synIDattr(synID(line('.'),col('.'),0),'name')})%=#%n %l/%L,%c%V "
+      endif
+   endfunc
+   " Switch between the normal and vim-debug modes in the status line
+   nmap _ds :call SetStatusLineStyle()<CR>
+   call SetStatusLineStyle()
+   " Window title
+   if has('title')
+      set titlestring=%t%(\ [%R%M]%)
+   endif
+endif 
+
+
+"augroup templates
+"  au!
+"  " read in template files
+"  autocmd BufNewFile *.* silent! execute '0r $HOME/vimfiles/templates/skeleton.'.expand("<afile>:e")
+"augroup END
+
+"" BufNewFile . = each time we edit a new file
+"autocmd BufNewFile *.* call TChange()
+"fun TChange()
+"    " &ft is filetype
+"    " @% is file name
+"    if @% =~ '.\(sh\|pl\)$'
+"        " silent! execute = execute silently, no error messages if failed
+"        " 0r = read file and insert content at top (0) in the new file
+"        " expand(":e") = get extension of current filename, % is file name, %:e is file extension, see :help expand
+"        silent! 0r $HOME/.vim/templates/template.%:e
+"        1,$ s/Script_Name/\=expand("%:t")
+"        exe '1,$ s/Create: VAL_DATE/Create: ' . strftime("%Y-%m-%d")
+"        exec 'g/# main/'
+"    endif
+"endfun
+
+" open markdown in chrome
+"command! ChromeOpen slient exe '!open -a "Google Chrome.app" %:p'
+function s:ChromeOpen()
+    " silent make it no need to input <enter> to start
+    silent exe '!open -a /Applications/Google\ Chrome.app %:p'
+    " reflash screen, or it will be empty
+    redraw!
+endfunction
+command! ChromeOpen :call s:ChromeOpen()
+
+" for vimwiki
+"let g:vimwiki_list = [{'path':'d:/vimwiki/',
+"            \'template_path' : 'd:/vimwiki/template/',
+"            \'template_default' : 'default_template',
+"            \'template_ext' : '.html',
+"            \'path_html': 'd:/vimwiki/html/'}
+"]
+
+" for pathogen plugin
+"execute pathogen#infect()
+
+" default no tab in paste
+"set paste
+"
+function! WrapForTmux(s)
+  if !exists('$TMUX')
+    return a:s
+  endif
+
+  let tmux_start = "\<Esc>Ptmux;"
+  let tmux_end = "\<Esc>\\"
+
+  return tmux_start . substitute(a:s, "\<Esc>", "\<Esc>\<Esc>", 'g') . tmux_end
+endfunction
+
+let &t_SI .= WrapForTmux("\<Esc>[?2004h")
+let &t_EI .= WrapForTmux("\<Esc>[?2004l")
+
+function! XTermPasteBegin()
+  set pastetoggle=<Esc>[201~
+  set paste
+  return ""
+endfunction
+
+" command Vex to start the project tree view
+let g:netrw_banner = 0
+let g:netrw_winsize = 15
+
+inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()

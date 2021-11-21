@@ -1,0 +1,10 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhist_cnt =8
+let g:netrw_dirhist_1='/Users/stonelai/FB/coreops/auditing-k8s-service/auditing-prometheus'
+let g:netrw_dirhist_2='/Users/stonelai/FB/coreops/auditing-k8s-service/auditing-prometheus/config'
+let g:netrw_dirhist_3='/Users/stonelai/FB/coreops/auditing-k8s-service/auditing-logcollect/templates/fluentbit'
+let g:netrw_dirhist_4='/Users/stonelai/Dropbox/fun/IOT/ESPHome/wemos'
+let g:netrw_dirhist_5='/Users/stonelai/Dropbox/fun/IOT/ESPHome/kidroom'
+let g:netrw_dirhist_6='/Users/stonelai/FB/coreops/infrastructure/Kubernetes/auditingsandbox/polaris'
+let g:netrw_dirhist_7='/Users/stonelai/FB/coreops/infrastructure'
+let g:netrw_dirhist_8='/Users/stonelai/.tmux'
