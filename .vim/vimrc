@@ -387,5 +387,6 @@ endfunction
 " command Vex to start the project tree view
 let g:netrw_banner = 0
 let g:netrw_winsize = 15
+let g:netrw_browse_split = 4
 
 inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
