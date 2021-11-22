@@ -8,7 +8,6 @@ fi
 #############
 work_dir=$(dirname $BASH_SOURCE)
 log_file=$work_dir/log/${0##*/}_${USER}_$(date "+%F")_$$.log
-ip_list=$work_dir/log/${0##*/}_${USER}_$(date "+%F")_$$.iplist
 
 #pull_local_dir="/tmp"
 #push_remote_dir="/tmp"
@@ -47,12 +46,6 @@ sub_get_ip() {
     fi
 }
 
-# clean log
-sub_clean() {
-    rm -f $ip_list
-    find $work_dir/log -name ${log_file%.*}* -mtime +1 -exec rm {} \; 2>/dev/null
-}
-
 #############
 # specific user
 #############
@@ -70,27 +63,29 @@ fi
 # get ip list
 #############
 if [[ $1 =~ ([0-9]{1,3}\.){3}[0-9]{1,3} ]]; then
-    echo "$1" > $ip_list
+    ip_list="$1"
+    shift
+# aws instance
+elif [[ $1 =~ i-[a-z0-9]+ ]]; then
+    ip_list="$1"
     shift
 elif [[ -f "$1" ]]; then
-    cat $1 |sort -k2,2 > $ip_list
+    ip_list=$(cat $1 |sort -k2,2)
     shift
 else
-    sub_get_ip $1 $2 | sort -k2,2 > $ip_list
-    #shift 2
+    ip_list=$(sub_get_ip $1 $2 | sort -k2,2)
 
-    if [[ -s $ip_list ]]; then
+    if [[ -n $ip_list ]]; then
         shift 2
     else
-        host $1 |awk '/has address/{print $NF, $1}' > $ip_list
+        ip_list=$(host $1 |awk '/has address/{print $NF, $1}')
         shift 1
     fi
 fi
 
 # just list the host
 if [[ $1 == list ]]; then
-    #cat -n $ip_list
-    awk '{printf "%03d %s\n", NR, $0}' $ip_list
+    ip_list$(awk '{printf "%03d %s\n", NR, $0}')
     sub_clean
     exit 0
 fi

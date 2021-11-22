@@ -45,14 +45,28 @@ ABSUSER=weiwlai
 #else
 #    type=ssh
 #fi
-if [[ $(cat $ip_list |wc -l) -gt 5 ]]; then
+
+if [[ $(echo -e "$ip_list" |wc -l) -gt 5 ]]; then
     read -r -p "go to more than 5 hosts? [y/n]: " answer
     [[ $answer =~ y|Y|yes|YES ]] || exit 0
 fi
 
-for ip in `awk '{print $1}' $ip_list`; do
-    server_name=`echo $ip |awk -F'[@.]' '{print $2}'`
-    [[ -z $server_name ]] && server_name=${ip#*\.*\.}
+while read ip profile server_name others; do
+    if [[ -z $server_name ]]; then
+        # try to get name from module.list if ip from command
+        server_name=$(grep -w $ip module.list |awk '{print $3}')
+        if [[ -z $server_name ]]; then
+            server_name=${ip}
+        fi
+
+        if [[ $ip =~ i-[0-9a-z]+ ]]; then
+            profile=$(grep -w $ip module.list |awk '{print $2}')
+            if [[ -z $profile ]]; then
+                echo "ERROR: no profile found for: $ip"
+                exit 1
+            fi
+        fi
+    fi
 
     if [[ $type == rdp ]]; then
         #echo run command: m3pass to get pass, m3pass in bash_alias
@@ -61,10 +75,11 @@ for ip in `awk '{print $1}' $ip_list`; do
         #echo osascript rts.scpt $ip
         osascript ~/bin/rts.scpt $ip
     elif [[ -n "$TMUX" ]]; then
-        tmux new-window -n $server_name -- ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip
+        tmux new-window -n $server_name -- aws --profile $profile ssm start-session --target $ip
+        #tmux new-window -n $server_name -- ssh -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip
         #screen -fn -t $server_name -- ssh -t -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip "/bin/bash -o emacs"
     else
         #ssh -t -q -o UseKeychain=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $ABSUSER@$ip "/bin/bash -o emacs"
         ssh -o UseKeychain=yes $ABSUSER@$ip "/bin/bash -o emacs"
     fi
-done
+done <<< "$ip_list"
