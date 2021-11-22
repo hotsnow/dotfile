@@ -204,11 +204,19 @@ function se {
         exit 0
     fi
 
+    word=$1
+
     if [[ -f ~/.files/english_detail.csv ]]; then
         while read line; do
-            [[ $line =~ ^[0-9],"$1" ]] && continue
-            [[ $line =~ ^[0-9], ]] && break
-            echo -e "$line"
+            # print first match line
+            if [[ $((i++)) == 0 ]]; then
+                echo "$line"
+                continue
+            fi
+
+            [[ "$line" =~ ^[0-9]+, ]] && break
+
+            echo "$line"
         done < <(grep -E -A 20 "^[0-9]+,\"$1\"" ~/.files/english_detail.csv)
     fi
 }
