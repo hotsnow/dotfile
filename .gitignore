@@ -12,3 +12,5 @@
 .cfg/*
 .vim/plugged/*
 .tmux/plugins/*
+bin/module.list
+bin/update-module.sh

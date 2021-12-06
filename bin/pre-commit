@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# forbid to commit to master directory
+# have to send a pr for mster
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "master" -o "$branch" = "master" ]; then
+  echo "You can't commit directly to master branch"
+  exit 1
+fi

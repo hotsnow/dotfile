@@ -24,7 +24,7 @@ Plug 'PProvost/vim-ps1'
 Plug 'vim-scripts/bash-support.vim'
 Plug 'WolfgangMehner/perl-support'
 Plug 'saltstack/salt-vim'
-"Plug 'pearofducks/ansible-vim', { 'do': './UltiSnips/generate.py' }
+Plug 'pearofducks/ansible-vim', { 'do': './UltiSnips/generate.py' }
 Plug 'fatih/vim-go', { 'do': ':GoUpdateBinaries' }
 Plug 'vim-syntastic/syntastic'
 Plug 'vim-scripts/DrawIt'

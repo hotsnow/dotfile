@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# pull from origin master every time before you push a dev/develop branch to remote dev/develop branch
+# this will make sure you always push the latest update
+
+# check stdin
+while read -r local_ref local_sha remote_ref remote_sha; do
+    #echo xxx $local_ref $local_sha $remote_ref $remote_sha
+    if [[ "${local_ref##*/}" =~ ^dev(elop)?$ && "${remote_ref##*/}" =~ ^dev(elop)?$ ]]; then
+        echo -e "----- pre-push hook ------"
+        echo -e "pulling from origin master to make sure you are updated"
+        echo -e "--------------------------\n"
+        git pull origin master
+    fi
+
+    # local project
+    if pwd |grep -q "^/data\|^$HOME/data"; then
+        if [[ "${local_ref##*/}" =~ ^MBP|TC?$ ]]; then
+            echo -e "----- pre-push hook ------"
+            echo -e "pulling from origin master to make sure you are updated"
+            echo -e "--------------------------\n"
+            git pull origin master
+        fi
+    fi
+done
+
+#while read -r local_ref local_sha remote_ref remote_sha; do
+#    if [[ -z "$local_ref" ]] || echo "$local_ref" |grep -Ewq "dev(elop)?"; then
+#        if [[ -z "$remote_ref" ]] || echo "$remote_ref" |grep -Ewq "dev(elop)?"; then
+#            git pull origin master
+#        fi
+#    fi
+#done
+
+
+#branch="$(git rev-parse --abbrev-ref HEAD)"
+#
+
